@@ -11,4 +11,4 @@ if(CMAKE_COMPILER_IS_GNUCC)
 endif(CMAKE_COMPILER_IS_GNUCC)
 
 
-add_executable(sum_free_sets main.cpp)
+add_executable(sum_free_sets complete_sum_free.cpp)
