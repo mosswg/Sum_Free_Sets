@@ -78,6 +78,7 @@ template <typename t> std::vector<std::vector<t>> get_complete_sum_free_set(t n)
     long max_first_value = (n+1) / 3;
 	long size = 0;
 	long index = 0;
+    bool current_is_sum_free = true;
 
 	for(int i = 1; i < n; i++) {
 		set[i-1] = i;
@@ -100,15 +101,19 @@ template <typename t> std::vector<std::vector<t>> get_complete_sum_free_set(t n)
         if(is_possible_complete(n, size, max_first_value, stack[1])) {
             tmp.resize(size);
             std::copy(stack.begin() + 1, stack.begin() + 1 + size, tmp.begin());
-            std::cout << "Possible: " << tmp << '\n';
-            for (auto i = stack.begin() + 1; i < stack.begin() + 1 + size; i++) {
+            for (auto i = stack.begin() + 1; i < stack.begin() + 1 + size && current_is_sum_free; i++) {
                 for (auto j = i; j < stack.begin() + 1 + size; j++) {
-                    sums.push_back((*i + *j) % n); // Calculate the sum mod n
+                    long sum = (*i + *j) % n; // Calculate the sum mod n
+                    if (vector_contains(tmp, sum)) {
+                        current_is_sum_free = false;
+                        continue;
+                    }
+                    sums.push_back(sum);
                 }
             }
 
 
-            if (is_sum_free(tmp, sums)) {
+            if (current_is_sum_free) {
                 if (is_complete(tmp, sums, n)) {
                     std::cout << "Complete Sum Free: " << tmp << std::endl;
                     out.emplace_back(size);
@@ -117,6 +122,7 @@ template <typename t> std::vector<std::vector<t>> get_complete_sum_free_set(t n)
                 }
             }
             sums.clear();
+            current_is_sum_free = true;
         }
 	}
 
