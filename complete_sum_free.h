@@ -98,6 +98,10 @@ template <typename t> std::vector<std::vector<t>> get_complete_sum_free_set(t n)
             break;
         }
 
+        if (stack[2] == (stack[1] << 1)) {
+            continue; // A check to see if the second value is equal to twice the first a.k.a. is b = a + a where b is the second value and a is the first
+        }
+
         if(is_possible_complete(n, size, max_first_value, stack[1])) {
             tmp.resize(size);
             std::copy(stack.begin() + 1, stack.begin() + 1 + size, tmp.begin());
@@ -111,7 +115,6 @@ template <typename t> std::vector<std::vector<t>> get_complete_sum_free_set(t n)
                     sums.push_back(sum);
                 }
             }
-
 
             if (current_is_sum_free) {
                 if (is_complete(tmp, sums, n)) {
