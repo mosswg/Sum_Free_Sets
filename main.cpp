@@ -48,7 +48,7 @@ template <typename t> std::ostream& operator<<(std::ostream& out, const std::vec
 
 // From: https://www.programminglogic.com/powerset-algorithm-in-c/
 template <typename t> void create_powersets(t n, std::vector<std::vector<t>>& out){
-	std::vector<t> stack(10);
+	std::vector<t> stack(n+1);
 	long size = 0;
 	long index = 0;
 
@@ -123,7 +123,7 @@ template <typename t> bool is_complete_sum_free_set(std::vector<t> const& set, t
 
 
 int main() {
-	long long n = 11;
+	long long n = 25;
 
 	std::vector<std::vector<long long>> power_sets;
 
