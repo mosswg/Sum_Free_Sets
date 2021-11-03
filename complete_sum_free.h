@@ -59,14 +59,14 @@ template <typename t> bool is_complete(std::vector<t> const& set, std::vector<t>
 	return !std::any_of(is_found.begin(), is_found.end(), [](auto const& found){return !found;}); // Check if all booleans are true
 }
 
-template <typename t> bool is_possible_complete(t n, t size) {
+template <typename t> bool is_possible_complete(t n, t size, t max_first_val, t first_val) {
     unsigned long element_set_size = size;
 
     unsigned long complementary_size = n - element_set_size;
 
     unsigned long raw_sum_size = (element_set_size * (element_set_size + 1)) >> 1;
 
-    return raw_sum_size >= complementary_size;
+    return (raw_sum_size >= complementary_size) && (first_val <= max_first_val);
 }
 
 template <typename t> std::vector<std::vector<t>> get_complete_sum_free_set(t n) {
@@ -75,6 +75,7 @@ template <typename t> std::vector<std::vector<t>> get_complete_sum_free_set(t n)
 	std::vector<t> set(n);
 	std::vector<t> sums;
 	std::vector<t> tmp;
+    long max_first_value = (n+1) / 3;
 	long size = 0;
 	long index = 0;
 
@@ -96,7 +97,7 @@ template <typename t> std::vector<std::vector<t>> get_complete_sum_free_set(t n)
             break;
         }
 
-        if(is_possible_complete(n, size)) {
+        if(is_possible_complete(n, size, max_first_value, stack[1])) {
             tmp.resize(size);
             std::copy(stack.begin() + 1, stack.begin() + 1 + size, tmp.begin());
             std::cout << "Possible: " << tmp << '\n';
