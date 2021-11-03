@@ -59,6 +59,16 @@ template <typename t> bool is_complete(std::vector<t> const& set, std::vector<t>
 	return !std::any_of(is_found.begin(), is_found.end(), [](auto const& found){return !found;}); // Check if all booleans are true
 }
 
+template <typename t> bool is_possible_complete(t n, t size) {
+    unsigned long element_set_size = size;
+
+    unsigned long complementary_size = n - element_set_size;
+
+    unsigned long raw_sum_size = (element_set_size * (element_set_size + 1)) >> 1;
+
+    return raw_sum_size >= complementary_size;
+}
+
 template <typename t> std::vector<std::vector<t>> get_complete_sum_free_set(t n) {
 	std::vector<std::vector<t>> out;
 	std::vector<t> stack(n+1);
@@ -73,36 +83,40 @@ template <typename t> std::vector<std::vector<t>> get_complete_sum_free_set(t n)
 	}
 
 	while(true){
-		if (stack[size] < n-1){
+		if(stack[size] < n-1) {
 			stack[size+1] = stack[size] + 1;
 			size++;
 		}
-		else{
+		else {
 			stack[size-1]++;
 			size--;
 		}
 
-		if (size == 0)
-			break;
+		if(size == 0) {
+            break;
+        }
 
-		for(auto i = stack.begin()+1; i < stack.begin()+1+size; i++) {
-			for(auto j = i; j < stack.begin()+1+size; j++) {
-				sums.push_back((*i + *j) % n); // Calculate the sum mod n
-			}
-		}
+        if(is_possible_complete(n, size)) {
+            tmp.resize(size);
+            std::copy(stack.begin() + 1, stack.begin() + 1 + size, tmp.begin());
+            std::cout << "Possible: " << tmp << '\n';
+            for (auto i = stack.begin() + 1; i < stack.begin() + 1 + size; i++) {
+                for (auto j = i; j < stack.begin() + 1 + size; j++) {
+                    sums.push_back((*i + *j) % n); // Calculate the sum mod n
+                }
+            }
 
-		tmp.resize(size);
-		std::copy(stack.begin() + 1, stack.begin() + 1 + size, tmp.begin());
 
-		if(is_sum_free(tmp, sums)) {
-			if (is_complete(tmp, sums, n)) {
-				std::cout << "Complete Sum Free: " << tmp << std::endl;
-				out.emplace_back(size);
-				std::copy(stack.begin() + 1, stack.begin() + 1 + size, out[index].begin());
-				index++;
-			}
-		}
-		sums.clear();
+            if (is_sum_free(tmp, sums)) {
+                if (is_complete(tmp, sums, n)) {
+                    std::cout << "Complete Sum Free: " << tmp << std::endl;
+                    out.emplace_back(size);
+                    std::copy(stack.begin() + 1, stack.begin() + 1 + size, out[index].begin());
+                    index++;
+                }
+            }
+            sums.clear();
+        }
 	}
 
 	return out;
