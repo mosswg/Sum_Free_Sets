@@ -101,9 +101,9 @@ template <typename t> std::vector<std::vector<t>> get_complete_sum_free_set(t n)
         if(is_possible_complete(n, size, max_first_value, stack[1])) {
             tmp.resize(size);
             std::copy(stack.begin() + 1, stack.begin() + 1 + size, tmp.begin());
-            for (auto i = stack.begin() + 1; i < stack.begin() + 1 + size && current_is_sum_free; i++) {
-                for (auto j = i; j < stack.begin() + 1 + size; j++) {
-                    long sum = (*i + *j) % n; // Calculate the sum mod n
+            for (auto i = 1; i < 1 + size && current_is_sum_free; i++) {
+                for (auto j = i; j < 1 + size; j++) {
+                    long sum = (stack[i] + stack[j]) % n; // Calculate the sum mod n
                     if (vector_contains(tmp, sum)) {
                         current_is_sum_free = false;
                         continue;
