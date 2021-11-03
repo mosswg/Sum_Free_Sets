@@ -78,3 +78,6 @@ The equation for this is
 ```
 (n+1) / 3
 ```
+
+### Sum Free
+Instead of finding all the sums then checking if they are sum free we can add a check to our sum calculations. If this check fails we stop calculating sums and mark the set and not sum free.
