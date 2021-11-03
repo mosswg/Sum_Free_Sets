@@ -72,17 +72,12 @@ template <typename t> bool is_possible_complete(t n, t size, t max_first_val, t 
 template <typename t> std::vector<std::vector<t>> get_complete_sum_free_set(t n) {
 	std::vector<std::vector<t>> out;
 	std::vector<t> stack(n+1);
-	std::vector<t> set(n);
 	std::vector<t> sums;
 	std::vector<t> tmp;
     long max_first_value = (n+1) / 3;
 	long size = 0;
 	long index = 0;
     bool current_is_sum_free = true;
-
-	for(int i = 1; i < n; i++) {
-		set[i-1] = i;
-	}
 
 	while(true){
 		if(stack[size] < n-1) {
