@@ -1,29 +1,11 @@
+//
+// Copyright (c) 2021 Moss Gallagher.
+//
+#pragma once
+
 #include <iostream>
 #include <algorithm>
 #include <vector>
-
-/*
- * to - from
- * ---------
- * \
- *  \
- *   |      i
- *  /
- * /
- * --------
- * i = 1
- */
-long sum(long from, long to) {
-	long sum = 0;
-	for (int i = 1; i <= (to-from); i++) {
-		sum += i;
-	}
-	return sum;
-}
-
-long long number_powersets(long long n) {
-	return 1 << n;
-}
 
 template <typename t> std::ostream& operator<<(std::ostream& out, const std::vector<t>& print) {
 	out << "{";
@@ -67,8 +49,6 @@ template <typename t> bool is_complete(std::vector<t> const& set, std::vector<t>
 	complementary.resize(j);
 	std::vector<bool> is_found(j);
 
-	std::cout << complementary << std::endl;
-
 	for(auto const& sum : sums) {
 		auto index = std::find(complementary.begin(), complementary.end(), sum);
 		if (index != complementary.end()) {
@@ -76,13 +56,11 @@ template <typename t> bool is_complete(std::vector<t> const& set, std::vector<t>
 		}
 	}
 
-	std::cout << is_found << "\n" << std::endl;
-
 	return !std::any_of(is_found.begin(), is_found.end(), [](auto const& found){return !found;}); // Check if all booleans are true
 }
 
-
-template <typename t> void get_complete_sum_free_set(t n, std::vector<std::vector<t>>& out){
+template <typename t> std::vector<std::vector<t>> get_complete_sum_free_set(t n) {
+	std::vector<std::vector<t>> out;
 	std::vector<t> stack(n+1);
 	std::vector<t> set(n);
 	std::vector<t> sums;
@@ -117,7 +95,7 @@ template <typename t> void get_complete_sum_free_set(t n, std::vector<std::vecto
 		std::copy(stack.begin() + 1, stack.begin() + 1 + size, tmp.begin());
 
 		if(is_sum_free(tmp, sums)) {
-			if (is_complete(tmp, sums, n-1)) {
+			if (is_complete(tmp, sums, n)) {
 				std::cout << "Complete Sum Free: " << tmp << std::endl;
 				out.emplace_back(size);
 				std::copy(stack.begin() + 1, stack.begin() + 1 + size, out[index].begin());
@@ -126,29 +104,6 @@ template <typename t> void get_complete_sum_free_set(t n, std::vector<std::vecto
 		}
 		sums.clear();
 	}
-}
-
-template <typename t> std::vector<t> complementary_set(std::vector<t> const& set, t n) {
-	std::vector<t> out;
-
-	for(t i = 0; i < n; i++) {
-		if (!vector_contains(set, i)) {
-			out.push_back(i);
-		}
-	}
 
 	return out;
-}
-
-
-int main() {
-	long long n = 15;
-
-	std::vector<std::vector<long long>> sum_free_sets;
-
-	get_complete_sum_free_set(n, sum_free_sets);
-
-	std::cout << sum_free_sets << std::endl;
-
-	return 0;
 }
