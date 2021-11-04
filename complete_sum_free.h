@@ -27,6 +27,10 @@ template <typename t> std::ostream& operator<<(std::ostream& out, const std::vec
 	return out;
 }
 
+template <typename t> bool vector_contains(typename std::vector<t>::iterator const& start, typename std::vector<t>::iterator const& end, t const& search) {
+    return std::any_of(start, end, [search](auto const& element){return element == search;});
+}
+
 template <typename t> bool vector_contains(std::vector<t> const& vec, t const& search) {
 	return std::any_of(vec.begin(), vec.end(), [search](auto const& element){return element == search;});
 }
@@ -72,11 +76,15 @@ template <typename t> bool is_possible_complete(t n, t size, t max_first_val, t 
 template <typename t> std::vector<std::vector<t>> get_complete_sum_free_set(t n) {
 	std::vector<std::vector<t>> out;
 	std::vector<t> stack(n+1);
+    stack[1] = 1;
+    stack[2] = 3;
 	std::vector<t> sums;
 	std::vector<t> tmp;
     long max_first_value = (n+1) / 3;
-	long size = 0;
+	long size = 2;
 	long index = 0;
+    long number_possible = 0;
+    long number_sum_free = 0;
     bool current_is_sum_free = true;
 
 	while(true){
@@ -98,6 +106,7 @@ template <typename t> std::vector<std::vector<t>> get_complete_sum_free_set(t n)
         }
 
         if(is_possible_complete(n, size, max_first_value, stack[1])) {
+            number_possible++;
             tmp.resize(size);
             std::copy(stack.begin() + 1, stack.begin() + 1 + size, tmp.begin());
             for (auto i = 1; i < 1 + size && current_is_sum_free; i++) {
@@ -112,10 +121,12 @@ template <typename t> std::vector<std::vector<t>> get_complete_sum_free_set(t n)
             }
 
             if (current_is_sum_free) {
+                std::cout << "Sum Free: " << tmp << std::endl;
+                number_sum_free++;
                 if (is_complete(tmp, sums, n)) {
                     std::cout << "Complete Sum Free: " << tmp << std::endl;
                     out.emplace_back(size);
-                    std::copy(stack.begin() + 1, stack.begin() + 1 + size, out[index].begin());
+                    std::copy(tmp.begin(), tmp.end(), out[index].begin());
                     index++;
                 }
             }
@@ -123,6 +134,10 @@ template <typename t> std::vector<std::vector<t>> get_complete_sum_free_set(t n)
             current_is_sum_free = true;
         }
 	}
+
+    std::cout << "Number Possible: " << number_possible << "\n";
+    std::cout << "Number Sum Free: " << number_sum_free << "\n";
+    std::cout << "Number Complete: " << index << "\n" << std::endl;
 
 	return out;
 }
