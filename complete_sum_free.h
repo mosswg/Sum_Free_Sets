@@ -49,13 +49,11 @@ template <typename t> bool is_complete(std::vector<t> const& set, std::vector<t>
 	}
 
     for (t i = 0; i < is_found.size(); i++) {
-        if (vector_contains(set, i))
-            continue;
-        if (!is_found[i]) {
-            return false;
-        }
-    }
-    return true;
+        if (!is_found[i] && !vector_contains(set, i)) {
+			return false;
+		}
+	}
+	return true;
 }
 
 template <typename t> bool is_possible_complete(t n, t size, t max_first_val, t first_val) {
