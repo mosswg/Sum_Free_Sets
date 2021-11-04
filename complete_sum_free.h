@@ -40,27 +40,22 @@ template <typename t> bool is_sum_free(std::vector<t> const& set, std::vector<t>
 }
 
 template <typename t> bool is_complete(std::vector<t> const& set, std::vector<t> const& sums, t n) {
-	std::vector<int> complementary(n);
+    std::vector<bool> is_found(n);
 
-	t j = 0;
-	for(t i = 0; i < n; i++) {
-		if (!vector_contains(set, i)) {
-			complementary[j] = i;
-			j++;
-		}
+	for(t sum : sums) {
+        if (!vector_contains(set, sum)) {
+                is_found[sum] = true;
+        }
 	}
 
-	complementary.resize(j);
-	std::vector<bool> is_found(j);
-
-	for(auto const& sum : sums) {
-		auto index = std::find(complementary.begin(), complementary.end(), sum);
-		if (index != complementary.end()) {
-			is_found[std::distance(complementary.begin(), index)] = true;
-		}
-	}
-
-	return !std::any_of(is_found.begin(), is_found.end(), [](auto const& found){return !found;}); // Check if all booleans are true
+    for (t i = 0; i < is_found.size(); i++) {
+        if (vector_contains(set, i))
+            continue;
+        if (!is_found[i]) {
+            return false;
+        }
+    }
+    return true;
 }
 
 template <typename t> bool is_possible_complete(t n, t size, t max_first_val, t first_val) {
@@ -121,7 +116,6 @@ template <typename t> std::vector<std::vector<t>> get_complete_sum_free_set(t n)
             }
 
             if (current_is_sum_free) {
-                std::cout << "Sum Free: " << tmp << std::endl;
                 number_sum_free++;
                 if (is_complete(tmp, sums, n)) {
                     std::cout << "Complete Sum Free: " << tmp << std::endl;
