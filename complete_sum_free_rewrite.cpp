@@ -2,14 +2,36 @@
 // Created by moss on 10/18/22.
 //
 #include "complete_sum_free_sets_consts.h"
-#include <cstdio>
-#include <cstdlib>
 #include <iostream>
-#include <bitset>
+#include <fstream>
 
 // https://en.wikipedia.org/wiki/Circular_shift
 uint64_t rotl(uint64_t value, unsigned int count, int n) {
     return value << count | value >> (n - count);
+}
+
+
+void write_set_to_file(uint64_t set, int n, std::ofstream& outfile) {
+    outfile << "{";
+    for (int i = 0; i < n; i++) {
+        if ((set >> i) & 0b1) {
+            outfile << i;
+
+            if ((set >> (i + 1))) {
+                outfile << ", ";
+            }
+        }
+    }
+    outfile << "},\n";
+}
+
+uint32_t get_set_bits(uint64_t value) {
+    uint32_t count = 0;
+    while(value){
+        value &= value-1;
+        count++;
+    }
+    return count;
 }
 
 void print_set(uint64_t set, int n) {
@@ -26,13 +48,29 @@ void print_set(uint64_t set, int n) {
     printf("},\n");
 }
 
-uint64_t sets[50000000];
-uint32_t num_sets_generated = 0;
+uint64_t complete_sum_free_sets[10000];
+uint32_t current_complete_sum_free_set = 0;
+uint32_t minimum_found_set_length;
+uint64_t mask;
 
 void print_sets(int n) {
-    for (int i = 0; sets[i]; i++) {
-        print_set(sets[i], n);
+    uint64_t set;
+
+    for (int i = 0; (set = complete_sum_free_sets[i]); i++) {
+        print_set(set, n);
     }
+    std::cout << '\n';
+}
+
+void write_sets_to_file(int n) {
+    uint64_t set;
+    std::ofstream outfile("output_files/complete_sum_free_sets_" + std::to_string(n));
+
+    for (int i = 0; (set = complete_sum_free_sets[i]); i++) {
+        write_set_to_file(set, n, outfile);
+    }
+    outfile.close();
+
     std::cout << '\n';
 }
 
@@ -48,16 +86,28 @@ uint64_t generate_sums(uint64_t set, int n) {
     return sums;
 }
 
+bool is_complete(const uint64_t set, int n) {
+    uint64_t sums = 0;
+
+    for (uint64_t i = 0; i <= n; i++) {
+        // Add i to each value of the set and or with the sums if the set contains i
+        if ((set >> i) & 0b1) {
+            sums |= rotl(set, i, n);
+        }
+    }
+
+    // Check if the sums are equal to the complementary set
+    return ((sums & mask) == ((~set) & mask));
+}
+
 int get_last_node_value(uint64_t set) {
     int i = 1;
     for (; set >> i; i++);
     return i - 1;
 }
 
-int generate_sub_nodes(uint64_t set, int n, uint64_t* output) {
+int generate_sub_nodes(uint64_t set, uint64_t sums, int n, uint64_t* sets_output, uint64_t* sums_output) {
     uint64_t copy;
-    uint64_t mask = ((((uint64_t)1) << n) - 1);
-    uint64_t sums = generate_sums(set, n) & mask;
     uint64_t sums_copy;
     int last_node_value = get_last_node_value(set);
     int index = 0;
@@ -71,52 +121,52 @@ int generate_sub_nodes(uint64_t set, int n, uint64_t* output) {
         sums_copy = sums | rotl(copy, i, n);
 
         if (!((sums_copy & (copy)) & mask)) {
-            output[index++] = copy;
-            num_sets_generated++;
+            sets_output[index] = copy;
+            sums_output[index++] = (sums_copy & mask);
         }
     }
 
     return index;
 }
 
-int generate_nodes_from_set(uint64_t set, int n, uint64_t* output) {
-    int num_new_sets = generate_sub_nodes(set, n, output);
+void generate_nodes_from_set(uint64_t set, uint64_t sums, int size, int n) {
+    uint64_t new_sets[n];
+    uint64_t new_sums[n];
+    int num_new_sets = generate_sub_nodes(set, sums, n, new_sets, new_sums);
 
     if (num_new_sets == 0) {
-        return 0;
+        uint32_t sums_size = get_set_bits(sums);
+        if ((n - size) == sums_size) {
+            if (is_complete(set, n)) {
+                if (size < minimum_found_set_length) {
+                    minimum_found_set_length = size;
+                }
+                complete_sum_free_sets[current_complete_sum_free_set++] = set;
+            }
+            else {
+//                std::cout << size << ' ' << sums_size << std::endl;
+//                print_set(set, n);
+            }
+        }
+        return;
     }
 
-    int num_new_new_sets;
-    int new_set_place = num_new_sets;
     for (int i = 0; i < num_new_sets; i++) {
-        num_new_new_sets = generate_nodes_from_set(output[i], n, output + new_set_place);
-
-        new_set_place += num_new_new_sets;
+        generate_nodes_from_set(new_sets[i], new_sums[i], size + 1, n);
     }
-
-    return new_set_place;
 }
 
-int generate_sum_free_sets(int n) {
-    int num_new_sets;
-    int current_set = 0;
-
-    for (int i = 1; i < n; i++) {
-        sets[current_set] = ((uint64_t)0b1) << i;
-        num_sets_generated++;
-
-        num_new_sets = generate_nodes_from_set(sets[current_set], n, sets + current_set + 1);
-
-        current_set += num_new_sets + 1;
+void generate_complete_sum_free_sets(int n) {
+    for (int i = 1; i <= ((n + 1) / 3); i++) {
+        std::cout << i << ' ' << std::flush;
+        generate_nodes_from_set(((uint64_t) 0b1) << i, ((uint64_t) 0b1) << (i*2), 1, n);
     }
-
-    return current_set;
+    std::cout << std::endl;
 }
 
 
 bool is_complete_sum_free(const uint64_t set, int n) {
     uint64_t sums = 0;
-    uint64_t mask = ((((uint64_t)1) << n) - 1);
 
     for (uint64_t i = 0; i <= n; i++) {
         // Add i to each value of the set and or with the sums if the set contains i
@@ -127,21 +177,6 @@ bool is_complete_sum_free(const uint64_t set, int n) {
             if ((sums & (set)) & mask) {
                 return false;
             }
-        }
-    }
-
-    // Check if the sums are equal to the complementary set
-    return ((sums & mask) == ((~set) & mask));
-}
-
-bool is_complete(const uint64_t set, int n) {
-    uint64_t sums = 0;
-    uint64_t mask = ((((uint64_t)1) << n) - 1);
-
-    for (uint64_t i = 0; i <= n; i++) {
-        // Add i to each value of the set and or with the sums if the set contains i
-        if ((set >> i) & 0b1) {
-            sums |= rotl(set, i, n);
         }
     }
 
@@ -168,20 +203,18 @@ int print_all_complete_sum_free_sets(int n) {
 }
 
 
-int print_all_complete_sum_free_sets_new(int n) {
+uint32_t print_all_complete_sum_free_sets_new(int n) {
+    minimum_found_set_length = n;
+    mask = (((((uint64_t)1) << (n - 1)) - 1) << 1) | 0b1;
     std::cout << "Generating Sum Free Sets" << std::endl;
-    int found = generate_sum_free_sets(n);
-    std::cout << "Checking " << found << " Sum-Free Sets" << std::endl;
-    int num_found = 0;
+    generate_complete_sum_free_sets(n);
 
-    for (int i = 0; sets[i]; i++) {
-        if (is_complete(sets[i], n)) {
-            print_set(sets[i], n);
-            num_found++;
-        }
-    }
+    write_sets_to_file(n);
 
-    return num_found;
+    std::cout << "Found: " << current_complete_sum_free_set << std::endl;
+    std::cout << "Minimum Set Length: " << (minimum_found_set_length == n ? 0 : minimum_found_set_length) << std::endl;
+
+    return current_complete_sum_free_set;
 }
 
 
@@ -244,17 +277,36 @@ uint64_t convert(const int32_t set[]) {
 
 int main() {
 
-    int n = 51;
 
-    print_all_complete_sum_free_sets_new(n);
+    // 54: 25.60
+    // 56: 51.47
+    // 58: 101.18
+    // 60: 208.49
+    // 62: 406.89
+    // Guess: 64: 840
+    //
+    // 61: 43.58
+    // 63: 73.80
 
-//    int found = sizeof(sets_51) / sizeof(sets_51[0]);
+
+    for (int n = 61; n <= 63; n++) {
+        std::cout << "\n\nn = " << n << std::endl;
+        print_all_complete_sum_free_sets_new(n);
+
+        for (int i = 0; complete_sum_free_sets[i]; i++) {
+            complete_sum_free_sets[i] = 0;
+        }
+        current_complete_sum_free_set = 0;
+    }
+
+//    int found = sizeof(sets_37) / sizeof(sets_37[0]);
 //    bool* is_found = new bool[found];
+//    uint64_t set;
 //
 //    for (int i = 0; i < found; i++) {
-//        uint64_t converted_set = convert(sets_51[i]);
-//        for (int j = 0; sets[j]; j++) {
-//            if (sets[j] == converted_set) {
+//        uint64_t converted_set = convert(sets_37[i]);
+//        for (int j = 0; (set = complete_sum_free_sets[j]); j++) {
+//            if (set == converted_set) {
 //                is_found[i] = true;
 //                break;
 //            }
@@ -268,8 +320,8 @@ int main() {
 //    }
 //
 //    delete[] is_found;
-//
-//    return 0;
+
+    return 0;
 
 }
 
@@ -298,8 +350,8 @@ int main() {
 
 
 
-
-
+//  Found 656 ./complete_sum_free_sets_rewrite  19.30s user 0.00s system 99% cpu 19.321 tot
+//  Found 656 ./complete_sum_free_sets_rewrite  18.88s user 0.00s system 99% cpu 18.914 total
 
 
 
