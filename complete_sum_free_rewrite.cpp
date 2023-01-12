@@ -73,7 +73,14 @@ void print_sets(uint32_t n) {
 
 void write_sets_to_file(int n) {
     uint64_t set;
-    std::ofstream outfile("output_files/complete_sum_free_sets_" + std::to_string(n));
+	std::ofstream outfile;
+	if (n < 10) {
+		outfile.open("output_files/complete_sum_free_sets_0" + std::to_string(n), std::ofstream::out | std::ofstream::trunc);
+	}
+	else {
+		outfile.open("output_files/complete_sum_free_sets_" + std::to_string(n), std::ofstream::out | std::ofstream::trunc);
+	}
+
 
     for (int i = 0; (set = complete_sum_free_sets[i]); i++) {
         write_set_to_file(set, n, outfile);
@@ -620,7 +627,9 @@ uint32_t print_all_complete_sum_free_sets_new(int n) {
 
     print_sets(n);
 
-    std::ofstream("output_files/complete_sum_free_sets_graph", std::ios_base::app) << "(" << n << "," << (log10(current_complete_sum_free_set) / log_10_2) << ")\n";
+    std::ofstream("output_files/complete_sum_free_sets_graph", std::ios_base::out | std::ios_base::trunc) << "(" << n << "," << (log10(current_complete_sum_free_set) / log_10_2) << ")\n";
+
+	write_sets_to_file(n);
 
     std::cout << "Found: " << current_complete_sum_free_set << std::endl;
     std::cout << "Minimum Set Length: " << (minimum_found_set_length == n ? 0 : minimum_found_set_length) << std::endl;
@@ -716,8 +725,11 @@ void test_against_known_values(int n) {
 
 int main() {
 
-	for (int n = 2; n <= 60; n++) {
+	for (int n = 2; n <= 63; n++) {
 		print_all_complete_sum_free_sets_new(n);
+		for (int i = 0; i < current_complete_sum_free_set; i++) {
+			complete_sum_free_sets[i] = 0;
+		}
 	}
 }
 
