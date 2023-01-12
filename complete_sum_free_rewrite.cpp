@@ -3,12 +3,14 @@
 //
 #include "complete_sum_free_sets_consts.h"
 #include <fstream>
+#include <cstdint>
+#include <bitset>
+#include <cmath>
 
 // https://en.wikipedia.org/wiki/Circular_shift
 uint64_t rotl(uint64_t value, unsigned int count, int n) {
     return value << count | value >> (n - count);
 }
-
 
 void write_set_to_file(uint64_t set, int n, std::ofstream& outfile) {
     outfile << "{";
@@ -33,7 +35,7 @@ uint32_t get_set_bits(uint64_t value) {
     return count;
 }
 
-void print_set(uint64_t set, int n) {
+void print_set(uint64_t set, uint32_t n) {
     printf("{");
     for (int i = 0; i < n; i++) {
         if ((set >> i) & 0b1) {
@@ -53,7 +55,14 @@ uint32_t minimum_found_set_length;
 uint64_t mask;
 uint64_t max_first_value;
 
-void print_sets(int n) {
+void initialize_for_n(int n) {
+    current_complete_sum_free_set = 0;
+    minimum_found_set_length = n;
+    max_first_value = (n + 1) / 3;
+    mask = ((((uint64_t)1) << (n)) - 1);
+}
+
+void print_sets(uint32_t n) {
     uint64_t set;
 
     for (int i = 0; (set = complete_sum_free_sets[i]); i++) {
@@ -208,13 +217,8 @@ int print_all_complete_sum_free_sets(int n) {
 }
 
 
-void initialize_for_n(int n) {
-    minimum_found_set_length = n;
-    max_first_value = (n + 1) / 3;
-    mask = (((((uint64_t)1) << (n)) - 1) << 1) | 0b1;
-}
 
-
+double log_10_2 = log10(2);
 uint32_t print_all_complete_sum_free_sets_new(int n) {
     initialize_for_n(n);
     std::cout << "Generating Sum Free Sets" << std::endl;
@@ -222,21 +226,16 @@ uint32_t print_all_complete_sum_free_sets_new(int n) {
 
     print_sets(n);
 
+    std::ofstream("output_files/complete_sum_free_sets_graph", std::ios_base::app) << "(" << n << "," << (log10(current_complete_sum_free_set) / log_10_2) << ")\n";
+
     std::cout << "Found: " << current_complete_sum_free_set << std::endl;
     std::cout << "Minimum Set Length: " << (minimum_found_set_length == n ? 0 : minimum_found_set_length) << std::endl;
 
     return current_complete_sum_free_set;
 }
 
-
-
-void create_set(uint64_t& set, int n) {
-    for (int i = 0; i <= (n / 2); i++) {
-        set |= ((set >> i) & 0b1) << (n - i);
-    }
-}
-
 int print_symmetric_complete_sum_free_sets(int n) {
+    initialize_for_n(n);
     int num_found = 0;
     uint64_t limit = 1;
     int half_n = n / 2;
@@ -244,14 +243,13 @@ int print_symmetric_complete_sum_free_sets(int n) {
 
     for (uint64_t i = 1; i < limit; i++) {
         uint64_t set = i << 1;
-        create_set(set, n);
-        uint64_t new_set = i << 1;
-        new_set |= new_set << half_n;
+        mirror_first_half_of_set(set, n);
 
         if(is_complete_sum_free(set, n)) {
             // print_set(set, n);
-            print_set(~set, n);
-            std::cout << std::endl;
+            //print_set(~set, n);
+            std::cout << "found set\n";
+            num_found++;
         }
 //        else if (is_complete_sum_free(new_set, n)) {
 //            printf("Found new complete sum free: ");
@@ -329,21 +327,10 @@ void test_against_known_values(int n) {
 
 int main() {
 
-
-    for (int n = 1; n <= 60; n++) {
-        std::cout << "\n\nn = " << n << std::endl;
-        print_all_complete_sum_free_sets_new(n);
-    }
-
-//    for (int n = 2; n <= 51; n++) {
-//        if (n == 29) continue;
-//        std::cout << "\n\nn = " << n << std::endl;
-//        test_against_known_values(n);
-//        for (int i = 0; complete_sum_free_sets[i]; i++) {
-//            complete_sum_free_sets[i] = 0;
-//        }
-//        current_complete_sum_free_set = 0;
-//    }
+	for (int n = 2; n <= 60; n++) {
+		print_all_complete_sum_free_sets_new(n);
+	}
+}
 
 
     // 54: 25.60
@@ -356,45 +343,6 @@ int main() {
     // 61: 43.58
     // 63: 73.80
 
-
-//    for (int n = 1; n <= 60; n++) {
-//        std::cout << "\n\nn = " << n << std::endl;
-//        print_all_complete_sum_free_sets_new(n);
-//
-//        for (int i = 0; complete_sum_free_sets[i]; i++) {
-//            complete_sum_free_sets[i] = 0;
-//        }
-//        current_complete_sum_free_set = 0;
-//    }
-
-
-
-}
-
-
-/*
- {1},
-{2},
-{3},
-{1, 3},
-{2, 3},
-{4},
-{3, 4},
-{5},
-{1, 5},
-{2, 5},
-{4, 5},
-{6},
-{1, 6},
-{2, 6},
-{4, 6},
- */
-
-
-
-
-
-
 // 55:
 //  Initial:
 //      Found 656 ./complete_sum_free_sets_rewrite  19.30s user 0.00s system 99% cpu 19.321 tot
@@ -404,69 +352,3 @@ int main() {
 //      Found: 656 ./complete_sum_free_sets_rewrite  7.41s user 0.00s system 99% cpu 7.445 total
 //  Optimizations 3:
 //      Found: 656 ./complete_sum_free_sets_rewrite  2.16s user 0.00s system 99% cpu 2.174 total
-
-
-
-// Optimizations:
-// ./rewrite_new  143.33s user 0.01s system 99% cpu 2:23.67 total
-// No optimizations:
-// ./complete_sum_free_sets_rewrite  392.28s user 0.01s system 99% cpu 6:32.93 total
-
-
-//    for (int n = 2; n <= 10; n++) {
-//        printf("\n\nn = %d\n", n);
-//        print_complete_sum_free_sets(n);
-//    }
-
-//    for (int i = 0; i < found; i++) {
-//        uint64_t converted_set = convert(sets_36[i]);
-//        for (unsigned long j : sets_fast) {
-//            if (j == converted_set) {
-//                is_found[i] = true;
-//                break;
-//            }
-//            else if (j) {
-////                std::cout << "Conval NEQ fval: \n\t" << std::bitset<37>(j) << '\t';
-////                print_set(j, n);
-////                std::cout << "\t" << std::bitset<37>(converted_set) << '\t';
-////                print_set(converted_set, n);
-//            }
-//        }
-//
-//        if (!is_found[i]) {
-//            std::cout << "Not Found: " << std::bitset<37>(converted_set) << '\t';
-//            print_set(converted_set, n);
-////            exit(1);
-//        }
-//    }
-
-
-//    const int n = 51;
-
-//    int set[] = {1, 4, 10, 17, 19, 24, 26, 32, 35};
-//
-//    std::cout << std::bitset<n>(convert(set)) << std::endl;
-//
-//    return 0;
-
-//    int found = sizeof(sets_51) / sizeof(sets_51[0]);
-//
-//
-//    for (int i = 0; i < found; i++) {
-//        for (int& j : doubles) {
-//            j = 0;
-//        }
-//
-//        for (int32_t value : sets_51[i]) {
-//            if (!value) {
-//                break;
-//            }
-//
-//            for (int32_t double_val : doubles) {
-//                if (value == double_val) {
-//                    printf("Rule break: %d in ", value);
-//                    print_set(convert(sets_51[i]), n);
-//                }
-//            }
-//        }
-//    }
