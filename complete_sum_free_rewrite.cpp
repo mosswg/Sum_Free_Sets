@@ -6,6 +6,8 @@
 #include <cstdint>
 #include <bitset>
 #include <cmath>
+#include <filesystem>
+#include <string>
 
 // https://en.wikipedia.org/wiki/Circular_shift
 uint64_t rotl(uint64_t value, unsigned int count, int n) {
@@ -541,7 +543,7 @@ int get_last_node_value(uint64_t set) {
     return i - 1;
 }
 
-int generate_sub_nodes(uint64_t set, uint64_t sums, uint32_t last_node_value, int n, uint64_t* sets_output, uint64_t* sums_output, uint32_t* new_node_output) {
+int generate_sub_nodes(uint64_t set, uint64_t sums, uint32_t last_node_value, int n, int size, uint64_t* sets_output, uint64_t* sums_output, uint32_t* new_node_output, std::ofstream& outfile) {
     uint64_t copy;
     uint64_t sums_copy;
     int index = 0;
@@ -555,6 +557,8 @@ int generate_sub_nodes(uint64_t set, uint64_t sums, uint32_t last_node_value, in
         sums_copy = sums | rotl(copy, i, n);
 
         if (!((sums_copy & (copy)) & mask)) {
+			outfile << "\tnode_" << i << "_" << size + 1 << " [label=\"" << i << "\"];\n";
+			outfile << "\tnode_" << last_node_value << "_" << size << "->node_" << i << "_" << size + 1 << ";\n";
             sets_output[index] = copy;
             sums_output[index] = (sums_copy & mask);
             new_node_output[index] = i;
@@ -565,11 +569,11 @@ int generate_sub_nodes(uint64_t set, uint64_t sums, uint32_t last_node_value, in
     return index;
 }
 
-void generate_nodes_from_set(uint64_t set, uint64_t sums, uint32_t last_node_value, int size, int n) {
+void generate_nodes_from_set(uint64_t set, uint64_t sums, uint32_t last_node_value, int size, int n, std::ofstream& outfile) {
     uint64_t new_sets[n];
     uint64_t new_sums[n];
     uint32_t new_last_node_values[n];
-    int num_new_sets = generate_sub_nodes(set, sums, last_node_value, n, new_sets, new_sums, new_last_node_values);
+    int num_new_sets = generate_sub_nodes(set, sums, last_node_value, n, size, new_sets, new_sums, new_last_node_values, outfile);
 
     if (num_new_sets == 0) {
         if (((sums & mask) == ((~set) & mask))) {
@@ -582,17 +586,37 @@ void generate_nodes_from_set(uint64_t set, uint64_t sums, uint32_t last_node_val
     }
 
     for (int i = 0; i < num_new_sets; i++) {
-        generate_nodes_from_set(new_sets[i], new_sums[i], new_last_node_values[i], size + 1, n);
+        generate_nodes_from_set(new_sets[i], new_sums[i], new_last_node_values[i], size + 1, n, outfile);
     }
 }
 
 void generate_nodes_from_starting_value(int value, int n) {
-    uint64_t starting_value = ((uint64_t) 0b1) << value;
-    generate_nodes_from_set(starting_value, rotl(starting_value, value, n), value, 1, n);
+	uint64_t starting_value = ((uint64_t) 0b1) << value;
+
+	std::string file_path;
+	if (n < 10) {
+		file_path = "tree_files/0" + std::to_string(n);
+	}
+	else {
+		file_path = "tree_files/" + std::to_string(n);
+	}
+
+	if (!std::filesystem::is_directory(file_path) || !std::filesystem::exists(file_path)) { // Check if src folder exists
+		std::filesystem::create_directory(file_path); // create src folder
+	}
+	std::ofstream outfile(file_path + "/" + std::to_string(value) + "_tree.dot", std::ofstream::out | std::ofstream::trunc);
+	outfile << "digraph BST {\n\tnode [fontname=\"Arial\"];\n";
+
+	outfile << "\tnode_" << value << "_1 [label=\"" << value << "\"];\n";
+    generate_nodes_from_set(starting_value, rotl(starting_value, value, n), value, 1, n, outfile);
+
+	outfile << "}";
+	outfile.close();
 }
 
 void generate_complete_sum_free_sets(int n) {
-    for (int i = 1; i <= max_first_value; i++) {
+
+    for (int i = 1; i < n; i++) {
         std::cout << i << ' ' << std::flush;
         generate_nodes_from_starting_value(i, n);
     }
@@ -627,7 +651,7 @@ uint32_t print_all_complete_sum_free_sets_new(int n) {
 
     print_sets(n);
 
-    std::ofstream("output_files/complete_sum_free_sets_graph", std::ios_base::out | std::ios_base::trunc) << "(" << n << "," << (log10(current_complete_sum_free_set) / log_10_2) << ")\n";
+    std::ofstream("output_files/complete_sum_free_sets_graph", std::ios_base::app) << "(" << n << "," << (log10(current_complete_sum_free_set) / log_10_2) << ")\n";
 
 	write_sets_to_file(n);
 
@@ -724,6 +748,13 @@ void test_against_known_values(int n) {
 
 
 int main() {
+	// Clear the graph file
+    std::ofstream("output_files/complete_sum_free_sets_log_graph_points", std::ios_base::trunc).close();
+
+
+	print_all_complete_sum_free_sets_new(21);
+
+	return 0;
 
 	for (int n = 2; n <= 63; n++) {
 		print_all_complete_sum_free_sets_new(n);
