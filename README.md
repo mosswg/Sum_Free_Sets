@@ -54,7 +54,7 @@ For each sum we need to check if the original set contains it.
 
 ### Complete
 To check for completeness we find the complementary set then loop through all the values in the sums set.
-For each sum we use it as an index in a boolean array to set it as found. 
+For each sum we use it as an index in a boolean array to set it as found.
 After we've gone through all the values in the sums set we check if all the values in the boolean array are true.
 
 
@@ -62,7 +62,7 @@ After we've gone through all the values in the sums set we check if all the valu
 ### Pre Calculations
 There are two ways to eliminate a large number of sets that cannot be complete.
 #### Length
-All complete sets must have at least as many sums as there are values in the complementary set. 
+All complete sets must have at least as many sums as there are values in the complementary set.
 Because of this we can calculate the number of sums and the number of complementary elements with the below formulas
 ```
 |s| is the size of the set
@@ -73,7 +73,7 @@ Number of sums = (|s|(|s| + 1)) / 2
 ```
 
 #### Maximum First Value
-For any `n` value there is a calculable maximum first value for complete sum free sets. 
+For any `n` value there is a calculable maximum first value for complete sum free sets.
 The equation for this is
 ```
 (n+1) / 3
@@ -81,3 +81,13 @@ The equation for this is
 
 ### Sum Free
 Instead of finding all the sums then checking if they are sum free we can add a check to our sum calculations. If this check fails we stop calculating sums and mark the set and not sum free.
+
+
+### Binary representation
+A set can be represented in binary by having the position from left to right represent a number and the bit represent if that number is in the set. For example:
+```
+{1, 3, 5}: 101010
+1 0 1 0 1 0
+^ ^ ^ ^ ^ ^
+5 4 3 2 1 0
+```
