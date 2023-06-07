@@ -207,7 +207,7 @@ set_bound_t get_last_node_value(sum_free_set_t set) {
 	return i - 1;
 }
 
-uint32_t generate_sub_nodes(sum_free_set_t set, sum_free_set_t sums, set_bound_t last_node_value, set_bound_t n, set_bound_t size, sum_free_set_t* sets_output, sum_free_set_t* sums_output, set_bound_t* new_node_output, std::ofstream& outfile) {
+uint32_t generate_sub_nodes(sum_free_set_t set, sum_free_set_t sums, set_bound_t last_node_value, set_bound_t size, set_bound_t n, std::ofstream& outfile) {
 	sum_free_set_t new_set;
 	sum_free_set_t new_set_sums;
 	sum_free_set_t new_value_to_add;
@@ -231,9 +231,16 @@ uint32_t generate_sub_nodes(sum_free_set_t set, sum_free_set_t sums, set_bound_t
 			outfile << "\tnode_" << i << "_" << size + 1 << " [label=\"" << i << "\"];\n";
 			outfile << "\tnode_" << last_node_value << "_" << size << "->node_" << i << "_" << size + 1 << ";\n";
 #endif
-			sets_output[number_of_new_sum_free_sets] = new_set;
-			sums_output[number_of_new_sum_free_sets] = (new_set_sums & mask);
-			new_node_output[number_of_new_sum_free_sets] = i;
+
+			int num_generated = generate_sub_nodes(new_set, new_set_sums, i, size + 1, n, outfile);
+			if (num_generated == 0) {
+				if (((new_set_sums & mask) == ((~new_set) & mask))) {
+					if (size < minimum_found_set_length) {
+						minimum_found_set_length = size;
+					}
+					complete_sum_free_sets[current_complete_sum_free_set++] = new_set;
+				}
+			}
 			number_of_new_sum_free_sets++;
 		}
 	}
@@ -242,10 +249,7 @@ uint32_t generate_sub_nodes(sum_free_set_t set, sum_free_set_t sums, set_bound_t
 }
 
 void generate_nodes_from_set(sum_free_set_t set, sum_free_set_t sums, set_bound_t last_node_value, set_bound_t size, set_bound_t n, std::ofstream& outfile) {
-	sum_free_set_t new_sets[n];
-	sum_free_set_t new_sums[n];
-	set_bound_t new_last_node_values[n];
-	uint32_t num_new_sets = generate_sub_nodes(set, sums, last_node_value, n, size, new_sets, new_sums, new_last_node_values, outfile);
+	uint32_t num_new_sets = generate_sub_nodes(set, sums, last_node_value, size, n, outfile);
 
 	if (num_new_sets == 0) {
 		if (((sums & mask) == ((~set) & mask))) {
@@ -255,10 +259,6 @@ void generate_nodes_from_set(sum_free_set_t set, sum_free_set_t sums, set_bound_
 			complete_sum_free_sets[current_complete_sum_free_set++] = set;
 		}
 		return;
-	}
-
-	for (set_bound_t i = 0; i < num_new_sets; i++) {
-		generate_nodes_from_set(new_sets[i], new_sums[i], new_last_node_values[i], size + 1, n, outfile);
 	}
 }
 
