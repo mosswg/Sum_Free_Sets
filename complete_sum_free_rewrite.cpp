@@ -8,6 +8,8 @@
 #include <cmath>
 #include <filesystem>
 #include <string>
+#include <thread>
+#include <vector>
 
 typedef __uint128_t sum_free_set_t;
 typedef uint32_t set_bound_t;
@@ -75,24 +77,31 @@ void print_set(sum_free_set_t set, set_bound_t n) {
 	printf("},\n");
 }
 
-sum_free_set_t complete_sum_free_sets[15000];
-set_bound_t current_complete_sum_free_set = 0;
+// Using 128 because it is the max supported n value for now; 2500 is arbitrary
+sum_free_set_t complete_sum_free_sets_for_thread[128][2500];
+set_bound_t current_complete_sum_free_set_for_thread[128];
+set_bound_t total_number_of_complete_sum_free_sets;
 set_bound_t minimum_found_set_length;
 sum_free_set_t mask;
 sum_free_set_t max_first_value;
 
 void initialize_for_n(set_bound_t n) {
-	current_complete_sum_free_set = 0;
 	minimum_found_set_length = n;
 	max_first_value = ((n + 1) / 3);
 	mask = ((((sum_free_set_t)1) << (n)) - 1);
+
+	for(int i = 0; i < 128; i++) {
+		current_complete_sum_free_set_for_thread[i] = 0;
+	}
 }
 
 void print_sets(set_bound_t n) {
 	sum_free_set_t set;
 
-	for (set_bound_t i = 0; (set = complete_sum_free_sets[i]); i++) {
-		print_set(set, n);
+	for (set_bound_t starting_value = 1; starting_value <= max_first_value; starting_value++) {
+		for (set_bound_t i = 0; (set = complete_sum_free_sets_for_thread[starting_value][i]); i++) {
+			print_set(set, n);
+		}
 	}
 	std::cout << '\n';
 }
@@ -119,9 +128,11 @@ void write_sets_to_file(set_bound_t n) {
 	graph_outfile << "digraph BST {\n";
 
 
-	for (set_bound_t i = 0; (set = complete_sum_free_sets[i]); i++) {
-		write_set_to_file(set, n, outfile);
-		write_set_tree_to_file(set, n, graph_outfile);
+	for (set_bound_t starting_value = 1; starting_value <= max_first_value; starting_value++) {
+		for (set_bound_t i = 0; (set = complete_sum_free_sets_for_thread[starting_value][i]); i++) {
+			write_set_to_file(set, n, outfile);
+			write_set_tree_to_file(set, n, graph_outfile);
+		}
 	}
 	outfile.close();
 
@@ -171,17 +182,19 @@ bool is_complete_sum_free(const sum_free_set_t set, set_bound_t n) {
 bool check_for_asymmetric_sets(set_bound_t n) {
 	sum_free_set_t mask = (((sum_free_set_t)1) << ((n + 1) / 2)) - 1;
 	bool found = false;
-	for (set_bound_t i = 0; i < current_complete_sum_free_set; i++) {
-		sum_free_set_t current_set = complete_sum_free_sets[i];
-		if (!current_set) {
-			continue;
-		}
-		sum_free_set_t half_set = current_set & mask;
-		mirror_first_half_of_set(half_set, n);
-		if (half_set != current_set) {
-			std::cout << "Found asymmetric set" << std::endl;
-			print_set(current_set, n);
-			found = true;
+	for (set_bound_t starting_value = 1; starting_value <= max_first_value; starting_value++) {
+		for (set_bound_t i = 0; i < current_complete_sum_free_set_for_thread[starting_value]; i++) {
+			sum_free_set_t current_set = complete_sum_free_sets_for_thread[starting_value][i];
+			if (!current_set) {
+				continue;
+			}
+			sum_free_set_t half_set = current_set & mask;
+			mirror_first_half_of_set(half_set, n);
+			if (half_set != current_set) {
+				std::cout << "Found asymmetric set" << std::endl;
+				print_set(current_set, n);
+				found = true;
+			}
 		}
 	}
 	return found;
@@ -207,7 +220,7 @@ set_bound_t get_last_node_value(sum_free_set_t set) {
 	return i - 1;
 }
 
-uint32_t generate_sub_nodes(sum_free_set_t set, sum_free_set_t sums, set_bound_t last_node_value, set_bound_t size, set_bound_t n, std::ofstream& outfile) {
+uint32_t generate_sub_nodes(sum_free_set_t set, sum_free_set_t sums, set_bound_t last_node_value, set_bound_t size, set_bound_t n, set_bound_t thread_index, std::ofstream& outfile) {
 	sum_free_set_t new_set;
 	sum_free_set_t new_set_sums;
 	sum_free_set_t new_value_to_add;
@@ -232,13 +245,13 @@ uint32_t generate_sub_nodes(sum_free_set_t set, sum_free_set_t sums, set_bound_t
 			outfile << "\tnode_" << last_node_value << "_" << size << "->node_" << i << "_" << size + 1 << ";\n";
 #endif
 
-			int num_generated = generate_sub_nodes(new_set, new_set_sums, i, size + 1, n, outfile);
+			int num_generated = generate_sub_nodes(new_set, new_set_sums, i, size + 1, n, thread_index, outfile);
 			if (num_generated == 0) {
 				if (((new_set_sums & mask) == ((~new_set) & mask))) {
 					if (size < minimum_found_set_length) {
 						minimum_found_set_length = size;
 					}
-					complete_sum_free_sets[current_complete_sum_free_set++] = new_set;
+					complete_sum_free_sets_for_thread[thread_index][current_complete_sum_free_set_for_thread[thread_index]++] = new_set;
 				}
 			}
 			number_of_new_sum_free_sets++;
@@ -248,18 +261,18 @@ uint32_t generate_sub_nodes(sum_free_set_t set, sum_free_set_t sums, set_bound_t
 	return number_of_new_sum_free_sets;
 }
 
-void generate_nodes_from_set(sum_free_set_t set, sum_free_set_t sums, set_bound_t last_node_value, set_bound_t size, set_bound_t n, std::ofstream& outfile) {
-	uint32_t num_new_sets = generate_sub_nodes(set, sums, last_node_value, size, n, outfile);
+void generate_nodes_from_set(sum_free_set_t set, sum_free_set_t sums, set_bound_t last_node_value, set_bound_t size, set_bound_t n, set_bound_t thread_index, std::ofstream& outfile) {
+	uint32_t num_new_sets = generate_sub_nodes(set, sums, last_node_value, size, n, thread_index, outfile);
 
 	if (num_new_sets == 0) {
 		if (((sums & mask) == ((~set) & mask))) {
 			if (size < minimum_found_set_length) {
 				minimum_found_set_length = size;
 			}
-			complete_sum_free_sets[current_complete_sum_free_set++] = set;
+			complete_sum_free_sets_for_thread[thread_index][current_complete_sum_free_set_for_thread[thread_index]++] = set;
 		}
-		return;
 	}
+	return;
 }
 
 void generate_nodes_from_starting_value(set_bound_t value, set_bound_t n) {
@@ -286,7 +299,7 @@ void generate_nodes_from_starting_value(set_bound_t value, set_bound_t n) {
 
 	sum_free_set_t starting_value = ((sum_free_set_t) 0b1) << value;
 
-	generate_nodes_from_set(starting_value, rotl(starting_value, value, n), value, 1, n, outfile);
+	generate_nodes_from_set(starting_value, rotl(starting_value, value, n), value, 1, n, value, outfile);
 
 #ifdef SUM_FREE_SETS_GRAPH_OUTPUT
 	outfile << "}";
@@ -295,10 +308,24 @@ void generate_nodes_from_starting_value(set_bound_t value, set_bound_t n) {
 }
 
 void generate_complete_sum_free_sets(set_bound_t n) {
+	std::vector<std::thread> threads;
 	for (set_bound_t i = 1; i <= max_first_value; i++) {
 		std::cout << i << ' ' << std::flush;
-		generate_nodes_from_starting_value(i, n);
+		threads.emplace_back(generate_nodes_from_starting_value, i, n);
 	}
+
+	/// Ensure that threads are done before exiting
+	for (auto& thread : threads) {
+		if (thread.joinable()) {
+			thread.join();
+		}
+	}
+
+	total_number_of_complete_sum_free_sets = 0;
+	for (set_bound_t i = 1; i <= max_first_value; i++) {
+		total_number_of_complete_sum_free_sets += current_complete_sum_free_set_for_thread[i];
+	}
+
 	std::cout << std::endl;
 }
 
@@ -319,10 +346,10 @@ set_bound_t print_all_complete_sum_free_sets_new(set_bound_t n) {
 	write_sets_to_file(n);
 #endif
 
-	std::cout << "Found: " << current_complete_sum_free_set << std::endl;
+	std::cout << "Found: " << total_number_of_complete_sum_free_sets << std::endl;
 	std::cout << "Minimum Set Length: " << (minimum_found_set_length == n ? 0 : minimum_found_set_length) << std::endl;
 
-	return current_complete_sum_free_set;
+	return total_number_of_complete_sum_free_sets;
 }
 
 set_bound_t print_symmetric_complete_sum_free_sets(set_bound_t n) {

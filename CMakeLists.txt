@@ -12,11 +12,6 @@ if(CMAKE_COMPILER_IS_GNUCC)
 endif(CMAKE_COMPILER_IS_GNUCC)
 
 
-add_executable(sum_free_sets
-        complete_sum_free.h
-        test.cpp
-        )
-
 add_executable(complete_sum_free_sets_rewrite
         complete_sum_free_rewrite.cpp
         )
