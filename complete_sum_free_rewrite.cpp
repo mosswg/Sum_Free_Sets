@@ -1,7 +1,8 @@
 //
 // Created by moss on 10/18/22.
 //
-#include "complete_sum_free_sets_consts.h"
+// #include "complete_sum_free_sets_consts.h"
+#include <iostream>
 #include <fstream>
 #include <cstdint>
 #include <bitset>
@@ -15,7 +16,7 @@ typedef __uint128_t sum_free_set_t;
 typedef uint32_t set_bound_t;
 
 #define SUM_FREE_SETS_FILE_OUTPUT
-// #define TIME_SUM_FREE_SETS_GENERATION
+#define TIME_SUM_FREE_SETS_GENERATION
 // #define SUM_FREE_SETS_GRAPH_OUTPUT
 // #define SUM_FREE_SETS_LOG_GRAPH
 
