@@ -1,5 +1,5 @@
 # Complete Sum Free Sets
-## THIS IS VERY OUTDATED
+## THIS README IS VERY OUTDATED
 None of this information is wrong exactly but not all of it is used or even useful. New info will come soon.
 
 
